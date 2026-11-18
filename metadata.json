@@ -1,0 +1,6 @@
+{
+  "name": "Videos Player & Converter",
+  "description": "Material 3 video studio for smooth video playback, precision trimming, format and resolution conversion, and instant sharing.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

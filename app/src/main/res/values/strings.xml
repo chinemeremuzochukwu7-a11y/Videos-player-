@@ -1,0 +1,29 @@
+<resources>
+    <string name="app_name">Videos Player &amp; Converter</string>
+    <string name="nav_studio">Home</string>
+    <string name="nav_workspace">Workspace</string>
+    <string name="nav_exports">Exports</string>
+    <string name="action_pick_video">Pick Video</string>
+    <string name="action_browse_files">Browse Files</string>
+    <string name="action_play">Play</string>
+    <string name="action_trim">Trim</string>
+    <string name="action_convert">Convert</string>
+    <string name="action_share">Share</string>
+    <string name="action_save_gallery">Save</string>
+    <string name="action_delete">Delete</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="hero_title">Play, Trim &amp; Convert</string>
+    <string name="hero_subtitle">Cinema-grade playback, frame-accurate trimming, format conversion, and instant sharing on-device.</string>
+    <string name="empty_workspace_title">No video loaded yet</string>
+    <string name="empty_workspace_subtitle">Choose any video from your gallery or files to play, trim segments, or convert codecs and resolution.</string>
+    <string name="empty_exports_title">Your export vault is empty</string>
+    <string name="empty_exports_subtitle">Trimmed clips, converted MP4s, and extracted audio tracks will appear here ready to play or share.</string>
+    <string name="cd_play_pause">Toggle play or pause</string>
+    <string name="cd_seek_back">Seek backward 5 seconds</string>
+    <string name="cd_seek_forward">Seek forward 5 seconds</string>
+    <string name="cd_mute">Toggle mute</string>
+    <string name="cd_fullscreen">Toggle fullscreen</string>
+    <string name="cd_resize_mode">Toggle aspect fit or fill</string>
+    <string name="cd_loop">Toggle loop playback</string>
+    <string name="cd_theme_toggle">Toggle dark or light studio theme</string>
+</resources>

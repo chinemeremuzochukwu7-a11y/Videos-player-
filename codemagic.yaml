@@ -1,0 +1,130 @@
+definitions:
+  scripts:
+    - &setup_android_sdk_and_gradle
+      name: Configure Android SDK and Gradle 9.3.1
+      script: |
+        set -euo pipefail
+        if [ -n "${ANDROID_SDK_ROOT:-}" ]; then
+          echo "sdk.dir=$ANDROID_SDK_ROOT" > "$CM_BUILD_DIR/local.properties"
+        elif [ -n "${ANDROID_HOME:-}" ]; then
+          echo "sdk.dir=$ANDROID_HOME" > "$CM_BUILD_DIR/local.properties"
+        fi
+
+        if [ ! -f "$CM_BUILD_DIR/.env" ]; then
+          touch "$CM_BUILD_DIR/.env"
+        fi
+
+        if [ -f "$CM_BUILD_DIR/debug.keystore.base64" ] && [ ! -f "$CM_BUILD_DIR/debug.keystore" ]; then
+          base64 -d "$CM_BUILD_DIR/debug.keystore.base64" > "$CM_BUILD_DIR/debug.keystore"
+        fi
+
+        GRADLE_VERSION="9.3.1"
+        GRADLE_DIR="$HOME/.gradle/wrapper/gradle-${GRADLE_VERSION}"
+        if [ ! -x "$GRADLE_DIR/bin/gradle" ]; then
+          curl -sSL "https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip" -o /tmp/gradle.zip
+          mkdir -p "$HOME/.gradle/wrapper"
+          unzip -q -o /tmp/gradle.zip -d "$HOME/.gradle/wrapper"
+          rm -f /tmp/gradle.zip
+        fi
+        echo "GRADLE_CMD=$GRADLE_DIR/bin/gradle" >> "$CM_ENV"
+
+workflows:
+  android-debug-workflow:
+    name: Videos Player & Video Converter Debug & Test (com.geevideoplayer)
+    max_build_duration: 45
+    instance_type: linux_x2
+    triggering:
+      events:
+        - push
+        - pull_request
+      branch_patterns:
+        - pattern: "*"
+          include: true
+          source: true
+    environment:
+      java: 21
+      vars:
+        PACKAGE_NAME: "com.geevideoplayer"
+    cache:
+      cache_paths:
+        - $HOME/.gradle/caches
+        - $HOME/.gradle/wrapper
+    scripts:
+      - *setup_android_sdk_and_gradle
+      - name: Run Unit and Robolectric Tests
+        script: |
+          $GRADLE_CMD :app:testDebugUnitTest --no-daemon --stacktrace
+      - name: Run Android Lint
+        script: |
+          $GRADLE_CMD :app:lintDebug --no-daemon
+      - name: Build Debug APK
+        script: |
+          $GRADLE_CMD :app:assembleDebug --no-daemon --stacktrace
+    artifacts:
+      - app/build/outputs/**/*.apk
+      - app/build/test-results/**/*.xml
+      - app/build/reports/lint-results-debug.html
+    publishing:
+      email:
+        recipients:
+          - gilbertuzochukwu846@gmail.com
+        notify:
+          success: true
+          failure: true
+
+  android-release-workflow:
+    name: Videos Player & Video Converter Release (com.geevideoplayer)
+    max_build_duration: 60
+    instance_type: linux_x2
+    environment:
+      java: 21
+      # Upload your keystore in Codemagic UI with key alias "upload" and reference name "clipcraft_keystore",
+      # or define KEYSTORE_PATH, STORE_PASSWORD, and KEY_PASSWORD in an environment group.
+      android_signing:
+        - clipcraft_keystore
+      vars:
+        PACKAGE_NAME: "com.geevideoplayer"
+    cache:
+      cache_paths:
+        - $HOME/.gradle/caches
+        - $HOME/.gradle/wrapper
+    scripts:
+      - *setup_android_sdk_and_gradle
+      - name: Configure Release Signing Environment
+        script: |
+          set -euo pipefail
+          export KEYSTORE_PATH="${KEYSTORE_PATH:-${CM_KEYSTORE_PATH:-}}"
+          export STORE_PASSWORD="${STORE_PASSWORD:-${CM_KEYSTORE_PASSWORD:-}}"
+          export KEY_PASSWORD="${KEY_PASSWORD:-${CM_KEY_PASSWORD:-}}"
+          if [ -z "$KEYSTORE_PATH" ] || [ ! -f "$KEYSTORE_PATH" ]; then
+            echo "Missing release keystore. Configure android_signing ('clipcraft_keystore' with alias 'upload') or KEYSTORE_PATH/STORE_PASSWORD/KEY_PASSWORD."
+            exit 1
+          fi
+          {
+            echo "KEYSTORE_PATH=$KEYSTORE_PATH"
+            echo "STORE_PASSWORD=$STORE_PASSWORD"
+            echo "KEY_PASSWORD=$KEY_PASSWORD"
+          } >> "$CM_ENV"
+      - name: Run Unit and Robolectric Tests
+        script: |
+          $GRADLE_CMD :app:testDebugUnitTest --no-daemon --stacktrace
+      - name: Build Signed Release AAB and APK
+        script: |
+          $GRADLE_CMD :app:bundleRelease :app:assembleRelease --no-daemon --stacktrace
+    artifacts:
+      - app/build/outputs/**/*.aab
+      - app/build/outputs/**/*.apk
+      - app/build/outputs/**/mapping.txt
+      - app/build/test-results/**/*.xml
+    publishing:
+      email:
+        recipients:
+          - gilbertuzochukwu846@gmail.com
+        notify:
+          success: true
+          failure: true
+      # Uncomment below after adding your Google Play Service Account JSON in Codemagic:
+      # google_play:
+      #   credentials: $GCLOUD_SERVICE_ACCOUNT_CREDENTIALS
+      #   track: internal
+      #   submit_as_draft: true
